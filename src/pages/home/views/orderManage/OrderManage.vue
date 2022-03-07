@@ -112,6 +112,14 @@
         </div>
       </div>
     </div>
+    <!-- 确认删除弹框 -->
+    <el-dialog :visible.sync="conformDeleteVisible" width="300px" center>
+        <p style="text-align:center">确认删除？</p>
+        <span slot="footer" class="dialog-footer">
+            <el-button @click="deleteVisible" size="small">取 消</el-button>
+            <el-button type="primary" @click="deleteUser" size="small">确 定</el-button>
+        </span>
+    </el-dialog>
   </el-main>
 </template>
 <script>
@@ -157,7 +165,9 @@ export default {
       order: '',
       payOrder: '',
       item: item,
-      tableData: []
+      tableData: [],
+      conformDeleteVisible: false, //确认退款弹窗
+      delayRow: ''
     }
   },
   filters: {
@@ -230,25 +240,8 @@ export default {
     },
 
     handleClickView (row) {
-        console.log(row)
-        let params = {
-            actOrderId: row.id
-        }
-        util.ajax
-            .post('activityOrder/refund', params)
-            .then((res) => {
-                console.log(res)
-               if (parseInt(res.data.code) == 301000) {
-                    this.remarkVisible = false
-                    this.$message('退款成功')
-                    this.getTableData()
-                }else if (res.data.code == 20007) {
-                    this.$router.push('/Login')
-                }
-            })
-            .catch(function (err) {
-                console.log(err)
-            })
+        this.delayRow = row
+        this.conformDeleteVisible = true
     },
 
     handleSortChange(sort) {
@@ -275,7 +268,6 @@ export default {
         this.search.activityEndTime = ''
       }
       if (this.search.payTime) {
-        console.log(this.search.payTime)
         this.search.buyStartTime = this.search.payTime[0]
         this.search.buyEndTime = this.search.payTime[1]
       }
@@ -295,15 +287,14 @@ export default {
       console.log(gather)
       // var d = new Date('Wed Dec 04 2019 00:00:00 GMT+0800 (中国标准时间)')
       // console.log(this.order, this.payOrder)
-      //console.log(this.order)
       let params = JSON.stringify({
         pageNum: gather.pageNum,
         pageSize: gather.pageSize,
         phone: gather.phone,
         activityName: gather.activityName,
         nickName: gather.nickName,
-        payType: gather.payType, //会员状态tab:普通会员,vip会员
-        ifAct: gather.ifAct, //参加活动状态tab:参加活动:1,未参加活动:0
+        payType: gather.payType, // 会员状态tab:普通会员,vip会员
+        ifAct: gather.ifAct, // 参加活动状态tab:参加活动:1,未参加活动:0
         activityStartTime: gather.activityStartTime ? gather.activityStartTime : '',
         activityEndTime: gather.activityEndTime ? gather.activityEndTime : '',
         buyStartTime: gather.buyStartTime ? gather.buyStartTime : '',
@@ -329,7 +320,33 @@ export default {
 
     handleGetTableData(total) {
       this.pagination.total = total
+    },
+    // 关闭删除窗口
+    deleteVisible() {
+        this.conformDeleteVisible = false
+    },
+        // 确认删除
+    deleteUser () {
+        let params = {
+            actOrderId: this.delayRow.id
+        }
+        util.ajax
+            .post('activityOrder/refund', params)
+            .then((res) => {
+                console.log(res)
+               if (parseInt(res.data.code) == 301000) {
+                    this.conformDeleteVisible = false
+                    this.$message('退款成功')
+                    this.getTableData()
+                }else if (res.data.code == 20007) {
+                    this.$router.push('/Login')
+                }
+            })
+            .catch(function (err) {
+                console.log(err)
+            })
     }
+
   }
 }
 </script>
